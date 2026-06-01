@@ -1,6 +1,6 @@
 # Changelog
 
-Source for [docs.volt.cloud](https://docs.volt.cloud). Auto-generated from
+Source for [docs.voltcloud.ai](https://docs.voltcloud.ai). Auto-generated from
 [Conventional Commits](https://www.conventionalcommits.org/).
 
 ## [Unreleased]

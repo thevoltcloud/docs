@@ -19,13 +19,13 @@ info:
     pod the request was served from.
   contact:
     name: Volt Platform Engineering
-    email: platform@volt.cloud
+    email: platform@voltcloud.ai
   license:
     name: Proprietary
 servers:
-  - url: https://api.volt.cloud
+  - url: https://api.voltcloud.ai
     description: Production
-  - url: https://api.staging.volt.cloud
+  - url: https://api.staging.voltcloud.ai
     description: Staging
 security:
   - apiKey: []
@@ -551,8 +551,8 @@ components:
       type: oauth2
       flows:
         authorizationCode:
-          authorizationUrl: https://auth.volt.cloud/oauth/authorize
-          tokenUrl: https://auth.volt.cloud/oauth/token
+          authorizationUrl: https://auth.voltcloud.ai/oauth/authorize
+          tokenUrl: https://auth.voltcloud.ai/oauth/token
           scopes:
             read: Read access
             write: Write access
@@ -823,7 +823,7 @@ components:
       properties:
         kubeconfig: { type: string, description: "Base64-encoded kubeconfig YAML" }
         expires_at: { type: string, format: date-time }
-        spiffe_id: { type: string, example: "spiffe://volt.cloud/tenant/acme/forge/lease-123" }
+        spiffe_id: { type: string, example: "spiffe://voltcloud.ai/tenant/acme/forge/lease-123" }
 
     # ---- Vault ----
 

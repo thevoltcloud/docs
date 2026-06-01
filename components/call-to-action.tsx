@@ -19,7 +19,7 @@ export default function CallToAction() {
 
                         <div className="flex items-center justify-center gap-3">
                             <Button asChild>
-                                <Link href="https://volt.cloud/contact">Get an API key</Link>
+                                <Link href="https://voltcloud.ai/contact">Get an API key</Link>
                             </Button>
                             <Button
                                 asChild

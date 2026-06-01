@@ -2,7 +2,7 @@
   "name": "@thevoltcloud/docs",
   "version": "0.1.0",
   "private": true,
-  "description": "Source for docs.volt.cloud — Volt documentation, built with Fumadocs.",
+  "description": "Source for docs.voltcloud.ai — Volt documentation, built with Fumadocs.",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

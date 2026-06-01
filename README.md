@@ -1,6 +1,6 @@
 # Volt Docs
 
-Source for [docs.volt.cloud](https://docs.volt.cloud), built with
+Source for [docs.voltcloud.ai](https://docs.voltcloud.ai), built with
 [Fumadocs](https://fumadocs.dev) (Next.js + MDX) and TailArk Pro blocks on the landing page.
 
 ## Structure

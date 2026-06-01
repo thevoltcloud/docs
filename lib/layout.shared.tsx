@@ -31,22 +31,22 @@ export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
       title: <VoltMark />,
-      url: 'https://volt.cloud',
+      url: 'https://voltcloud.ai',
     },
     githubUrl: `https://github.com/${gitConfig.user}`,
     links: [
       {
         text: 'Status',
-        url: 'https://status.volt.cloud',
+        url: 'https://status.voltcloud.ai',
       },
       {
         text: 'Website',
-        url: 'https://volt.cloud',
+        url: 'https://voltcloud.ai',
       },
       {
         type: 'button',
         text: 'Get an API key',
-        url: 'https://volt.cloud/contact',
+        url: 'https://voltcloud.ai/contact',
       },
     ],
   };
