@@ -1,0 +1,25 @@
+---
+title: Streaming chat
+description: Token-by-token streaming with the Python SDK.
+---
+
+Pass `stream=True` to get an iterator of chunks. The SDK parses the SSE framing
+for you.
+
+```python
+from volt import Volt
+
+client = Volt()
+stream = client.chat.completions.create(
+    model="llama-3.3-70b-instruct",
+    messages=[{"role": "user", "content": "Write a haiku about sovereign clouds."}],
+    stream=True,
+)
+for chunk in stream:
+    print(chunk.choices[0].delta.content, end="", flush=True)
+print()
+```
+
+Streaming is resumable: on a disconnect the SDK can resume from the last sequence
+if the pod's KV cache is still warm, otherwise it re-issues. Bound retries per call
+with `max_retries=`.

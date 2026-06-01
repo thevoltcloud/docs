@@ -1,0 +1,56 @@
+---
+title: Your first request
+description: Chat, streaming, and embeddings — the three calls you'll use most.
+---
+
+## Chat completion
+
+```python
+from volt import Volt
+
+client = Volt()
+resp = client.chat.completions.create(
+    model="llama-3.3-70b-instruct",
+    messages=[
+        {"role": "system", "content": "You are concise."},
+        {"role": "user", "content": "Explain CAP theorem in one sentence."},
+    ],
+)
+print(resp.choices[0].message.content)
+```
+
+Every response carries a `volt` block with the pod, metro, tier, and timing:
+
+```python
+print(resp.volt.pod_id, resp.volt.metro, resp.volt.tier, resp.volt.ttft_ms)
+```
+
+## Streaming
+
+```python
+stream = client.chat.completions.create(
+    model="llama-3.3-70b-instruct",
+    messages=[{"role": "user", "content": "Write a haiku about metros."}],
+    stream=True,
+)
+for chunk in stream:
+    print(chunk.choices[0].delta.content, end="", flush=True)
+```
+
+## Embeddings
+
+```python
+resp = client.embeddings.create(model="bge-large-en-v1.5", input=["hello", "world"])
+print(len(resp.data[0].embedding))
+```
+
+## List models
+
+```python
+for m in client.models.list():
+    print(m.id, m.catalog)
+```
+
+Only models in your org's allowed catalog appear. The **standard** catalog is the
+default; the **extended** catalog is opt-in and blocked by default for federal and
+regulated workloads. See [tiers & catalogs](/concepts/tiers).

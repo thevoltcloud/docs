@@ -1,0 +1,26 @@
+---
+title: TypeScript quickstart
+description: Using Volt from TypeScript / Node.
+---
+
+<Note>
+The TypeScript SDK (`@thevoltcloud/sdk`) is rolling out. The shape below is
+stable; until it ships you can call the [REST API](/api-reference) directly.
+</Note>
+
+```ts
+import { Volt } from "@thevoltcloud/sdk";
+
+const client = new Volt({
+  apiKey: process.env.VOLT_API_KEY!,
+  sovereign: true,
+  pinnedMetro: "us-east-iad",
+});
+
+const resp = await client.chat.completions.create({
+  model: "llama-3.3-70b-instruct",
+  messages: [{ role: "user", content: "Summarize" }],
+  podAffinity: "session-42",
+});
+console.log(resp.volt.podId, resp.volt.ttftMs);
+```

@@ -1,0 +1,72 @@
+---
+title: Quickstart
+description: Install the SDK, get a key, and make your first request.
+---
+
+Get from zero to a streamed completion in under five minutes.
+
+## 1. Install the SDK
+
+<CodeGroup>
+```bash Python
+pip install volt
+```
+
+```bash TypeScript
+npm install @thevoltcloud/sdk
+```
+
+```bash Go
+go get github.com/thevoltcloud/sdk-go
+```
+</CodeGroup>
+
+<Note>
+TypeScript and Go SDKs are rolling out. Python is available today; until the
+others land you can call the [REST API](/api-reference) directly.
+</Note>
+
+## 2. Get an API key
+
+Create one in the console or with [`voltctl`](https://github.com/thevoltcloud/voltctl):
+
+```bash
+voltctl key issue --org <your-org-id> --name "laptop"
+```
+
+Keys look like `volt_sk_live_...`. Store it in your environment:
+
+```bash
+export VOLT_API_KEY=volt_sk_live_...
+```
+
+## 3. First request
+
+```python
+from volt import Volt
+
+client = Volt()  # reads VOLT_API_KEY
+resp = client.chat.completions.create(
+    model="llama-3.3-70b-instruct",
+    messages=[{"role": "user", "content": "Say hello from my metro."}],
+)
+print(resp.choices[0].message.content)
+print("served by", resp.volt.pod_id, "in", resp.volt.metro)
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/getting-started/authentication">
+    Keys, env vars, and rotation.
+  </Card>
+  <Card title="Stream responses" icon="bolt" href="/cookbook/python/streaming-chat">
+    Token-by-token streaming.
+  </Card>
+  <Card title="Go sovereign" icon="shield" href="/concepts/sovereignty">
+    Pin a metro and enforce the sovereign tier.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference">
+    Every endpoint.
+  </Card>
+</CardGroup>

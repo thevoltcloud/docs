@@ -1,0 +1,12 @@
+{
+  "name": "@thevoltcloud/docs",
+  "private": true,
+  "description": "Source for docs.volt.cloud (Mintlify).",
+  "scripts": {
+    "dev": "mintlify dev",
+    "check-links": "mintlify broken-links"
+  },
+  "devDependencies": {
+    "mintlify": "^4"
+  }
+}

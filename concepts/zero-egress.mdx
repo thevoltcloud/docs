@@ -1,0 +1,33 @@
+---
+title: Zero egress
+description: Zero ingress, zero egress, zero inter-pod transfer — across every SKU.
+---
+
+Volt enforces **zero ingress, zero egress, and zero inter-pod transfer** across
+Spark, Forge, and Vault. This is a structural property, not a contract clause.
+
+## What it means
+
+- **No bandwidth fees, ever.** Hyperscalers charge $0.05–0.09/GB egress; Volt charges nothing.
+- **Your data never leaves the pod it lands in.** Sovereignty by physical placement, not by policy.
+- **Per-metro residency** is a property of where the request was served.
+
+## How it's enforced
+
+Three layers, each independent:
+
+1. **SPIRE workload identity** gates all cross-pod traffic — nothing talks to anything without a verified SVID.
+2. **Cilium network policy** at L3/L4 enforces a default-deny egress posture on every pod.
+3. **Scheduler placement** bakes pod-level network boundaries into where workloads run.
+
+## Why it matters
+
+- **Pricing:** removes a whole category of hidden cost and simplifies quotes.
+- **Compliance:** data residency is verifiable, which simplifies FedRAMP, the EU AI Act, and sector regulations.
+- **Trust:** combined with [client-side enforcement](/concepts/sovereignty) in the SDK, you get defense in depth.
+
+<Note>
+The Volt SDK validates each response against your configured tier and metro. On a
+mismatch it raises and withholds the payload from your code — the third leg of the
+zero-egress design.
+</Note>

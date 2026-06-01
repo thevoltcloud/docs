@@ -1,0 +1,53 @@
+---
+title: Volt documentation
+description: "Run 70B models in your customer's metro. At Bedrock prices. Without your data leaving the city."
+---
+
+Volt is the Sovereign Inference Cloud — a distributed Tier-3 inference fabric
+across metro pods, with zero egress and cryptographic attestation. Three products
+under one stack:
+
+<CardGroup cols={3}>
+  <Card title="Spark" icon="bolt">
+    Tokens-as-a-service. OpenAI-compatible. Llama 70B at **$0.95/M** standard,
+    **$1.45/M** sovereign.
+  </Card>
+  <Card title="Forge" icon="server">
+    GPU-as-a-service. NVIDIA B200 at **$2.36/GPU/hr** on 36-month reserved.
+  </Card>
+  <Card title="Vault" icon="lock">
+    Dedicated bare-metal. 8-GPU B200 rack from **$85K/mo**. Sovereign by default.
+  </Card>
+</CardGroup>
+
+## Start here
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/getting-started/quickstart">
+    Install the SDK, get a key, make your first request in under 5 minutes.
+  </Card>
+  <Card title="Authentication" icon="key" href="/getting-started/authentication">
+    API keys, environment variables, and OAuth.
+  </Card>
+  <Card title="Sovereignty" icon="shield" href="/concepts/sovereignty">
+    How in-metro inference and zero egress work.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference">
+    Full control-plane API for Spark, Forge, and Vault.
+  </Card>
+</CardGroup>
+
+## OpenAI drop-in
+
+Already using OpenAI? Point your client at Volt by changing the base URL and key:
+
+```python
+from volt import Volt
+
+client = Volt(api_key="volt_sk_live_...")
+resp = client.chat.completions.create(
+    model="llama-3.3-70b-instruct",
+    messages=[{"role": "user", "content": "Explain CAP theorem"}],
+)
+print(resp.choices[0].message.content)
+```

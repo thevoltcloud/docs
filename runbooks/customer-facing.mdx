@@ -1,0 +1,50 @@
+---
+title: During an incident
+description: What to do, and what to expect from Volt, during a service incident.
+---
+
+This page is for customers operating on Volt during an incident.
+
+## Check status first
+
+- **Status page:** [status.volt.cloud](https://status.volt.cloud) — current state per metro and SKU.
+- Incidents are posted with a severity, the affected metros/SKUs, and updates on a cadence.
+
+## What Volt guarantees
+
+- **99.9% uptime SLA** (Tier III standard).
+- Service credits at breach thresholds: **99.0%** and **98.0%** monthly availability.
+- During a sovereign-tier incident, your data still never leaves its metro — zero egress holds even in failure.
+
+## What your app should do
+
+The SDK is safe by default; lean on it:
+
+- **Bounded retries** are automatic — 429 honors `Retry-After`, 503 backs off. Override with `max_retries=`.
+- **Streams resume** on disconnect when the pod's KV cache is warm, otherwise re-issue.
+- **Catch typed errors** and read `request_id` / `pod_id` for support:
+
+```python
+from volt import Volt, NoCapacity, VoltError
+
+try:
+    resp = client.chat.completions.create(model="llama-3.3-70b-instruct", messages=[...])
+except NoCapacity as e:
+    # No eligible pod right now — back off and retry, or fail over.
+    log.warning("no capacity", request_id=e.request_id)
+except VoltError as e:
+    log.error("volt error", err=str(e), pod_id=e.pod_id)
+```
+
+## Sovereign and pinned workloads
+
+If you pin a metro, a capacity event in that metro will surface as `NoCapacity`
+rather than silently serving elsewhere — that is by design. Decide in advance
+whether to wait or to relax the pin for non-sensitive traffic.
+
+## Opening a support ticket
+
+Include the `request_id` and `pod_id` from the error, the model, the metro, and the
+timestamp. Customers on a support SLA reach support per their contract; otherwise
+email **support@volt.cloud**. Security issues go to **security@volt.cloud** — never
+a public channel.

@@ -1,0 +1,34 @@
+# CI for thevoltcloud/docs (Mintlify).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docs.json is valid JSON
+        run: python3 -c "import json; json.load(open('docs.json'))"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check for broken links
+        run: npx --yes mintlify@latest broken-links
+
+  openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate API reference spec
+        run: npx --yes @redocly/cli@latest lint api-reference/openapi.yaml
+
+  secret-scan:
+    uses: thevoltcloud/.github/.github/workflows/shared-secret-scan.yml@main
+    secrets: inherit

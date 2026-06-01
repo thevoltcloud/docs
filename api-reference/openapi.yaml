@@ -1,0 +1,920 @@
+openapi: 3.1.0
+info:
+  title: Volt Control Plane API
+  version: 0.1.0
+  summary: Sovereign Inference Cloud — Spark, Forge, Vault control plane
+  description: |
+    Volt is a distributed Tier-3 inference fabric. This spec covers the public
+    control plane for three SKUs:
+      - Spark: tokens-as-a-Service (OpenAI-compatible + Volt extensions)
+      - Forge: GPU-as-a-Service (dedicated GPU leases in a customer K8s namespace)
+      - Vault: dedicated bare-metal rack (sovereign by default)
+
+    All requests are authenticated. Public clients use API keys or OAuth2 device flow.
+    Human admins use OIDC (Okta, Entra, Google Workspace). Every authenticated request
+    is mapped server-side to a SPIFFE tenant ID and audited.
+
+    Zero ingress, zero egress, zero inter-pod transfer are enforced at the data plane.
+    This API never returns or accepts customer prompt/response payloads outside the
+    pod the request was served from.
+  contact:
+    name: Volt Platform Engineering
+    email: platform@volt.cloud
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.volt.cloud
+    description: Production
+  - url: https://api.staging.volt.cloud
+    description: Staging
+security:
+  - apiKey: []
+  - oauth2: [read, write]
+
+tags:
+  - name: spark
+    description: Tokens-as-a-Service (OpenAI-compatible)
+  - name: forge
+    description: GPU lease lifecycle
+  - name: vault
+    description: Bare-metal rack lifecycle
+  - name: catalog
+    description: Models, versions, weights
+  - name: billing
+    description: Usage and invoices
+  - name: tenancy
+    description: Orgs, members, API keys
+
+paths:
+
+  # ------------------------------------------------------------------
+  # SPARK — OpenAI-compatible + Volt extensions
+  # ------------------------------------------------------------------
+
+  /v1/chat/completions:
+    post:
+      tags: [spark]
+      summary: Create a chat completion
+      description: |
+        OpenAI-compatible. Volt-specific extensions:
+          - `volt_metro` pins the request to a specific metro pod.
+          - `volt_tier` selects `standard` or `sovereign`.
+          - `volt_pod_affinity` requests sticky routing for cache reuse.
+      operationId: createChatCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE stream when `stream=true`
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  /v1/completions:
+    post:
+      tags: [spark]
+      summary: Create a text completion (legacy)
+      operationId: createCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompletionRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletionResponse'
+
+  /v1/embeddings:
+    post:
+      tags: [spark]
+      summary: Generate embeddings
+      operationId: createEmbedding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingResponse'
+
+  /v1/models:
+    get:
+      tags: [catalog]
+      summary: List available models
+      operationId: listModels
+      parameters:
+        - in: query
+          name: tier
+          schema: { type: string, enum: [standard, sovereign] }
+        - in: query
+          name: catalog
+          schema: { type: string, enum: [standard, extended] }
+          description: Extended catalog (Qwen, DeepSeek, MiniMax) is opt-in and blocked for federal/regulated tenants.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Model' }
+
+  /v1/models/{model_id}:
+    get:
+      tags: [catalog]
+      summary: Get a model
+      operationId: getModel
+      parameters:
+        - in: path
+          name: model_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Model' }
+
+  /v1/fine-tuning/jobs:
+    post:
+      tags: [spark]
+      summary: Submit a LoRA fine-tune job
+      operationId: createFineTuneJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FineTuneRequest' }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FineTuneJob' }
+
+  /v1/fine-tuning/jobs/{job_id}:
+    get:
+      tags: [spark]
+      summary: Get a fine-tune job
+      operationId: getFineTuneJob
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FineTuneJob' }
+
+  /v1/usage:
+    get:
+      tags: [billing]
+      summary: Get token usage for the tenant
+      operationId: getUsage
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+        - in: query
+          name: granularity
+          schema: { type: string, enum: [hour, day, month] }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UsageReport' }
+
+  # ------------------------------------------------------------------
+  # FORGE — GPU lease lifecycle
+  # ------------------------------------------------------------------
+
+  /v1/forge/availability:
+    get:
+      tags: [forge]
+      summary: Query GPU availability
+      operationId: forgeAvailability
+      parameters:
+        - in: query
+          name: metro
+          schema: { type: string, example: "us-east-iad" }
+        - in: query
+          name: gpu_type
+          schema: { type: string, enum: [b200, l40s, mi355x, b300, gaudi3] }
+        - in: query
+          name: count
+          schema: { type: integer, minimum: 1, maximum: 1024 }
+        - in: query
+          name: term
+          schema: { type: string, enum: [on_demand, 12_month, 36_month] }
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ForgeAvailabilityResponse' }
+
+  /v1/forge/leases:
+    post:
+      tags: [forge]
+      summary: Create a GPU lease
+      operationId: createForgeLease
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ForgeLeaseRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ForgeLease' }
+    get:
+      tags: [forge]
+      summary: List leases
+      operationId: listForgeLeases
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ForgeLease' }
+
+  /v1/forge/leases/{lease_id}:
+    parameters:
+      - in: path
+        name: lease_id
+        required: true
+        schema: { type: string }
+    get:
+      tags: [forge]
+      summary: Get a lease
+      operationId: getForgeLease
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ForgeLease' }
+    delete:
+      tags: [forge]
+      summary: Terminate a lease
+      operationId: deleteForgeLease
+      responses:
+        '204':
+          description: Terminated
+
+  /v1/forge/leases/{lease_id}/kubeconfig:
+    parameters:
+      - in: path
+        name: lease_id
+        required: true
+        schema: { type: string }
+    post:
+      tags: [forge]
+      summary: Mint a scoped kubeconfig for the lease
+      description: |
+        Returns a short-lived kubeconfig (default 12h, max 24h) scoped via RBAC to the
+        customer namespace inside the pod. SPIFFE-issued certs underlie the kubeconfig.
+      operationId: mintForgeKubeconfig
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ttl_seconds:
+                  type: integer
+                  minimum: 600
+                  maximum: 86400
+                  default: 43200
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Kubeconfig' }
+
+  # ------------------------------------------------------------------
+  # VAULT — bare-metal rack lifecycle
+  # ------------------------------------------------------------------
+
+  /v1/vault/racks:
+    post:
+      tags: [vault]
+      summary: Request a dedicated bare-metal rack
+      description: |
+        Vault is contract-only (36-month minimum). This endpoint creates the
+        intent and triggers procurement workflow. The rack is delivered when
+        the signed contract is on file.
+      operationId: createVaultRack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VaultRackRequest' }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VaultRack' }
+    get:
+      tags: [vault]
+      summary: List racks
+      operationId: listVaultRacks
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/VaultRack' }
+
+  /v1/vault/racks/{rack_id}:
+    parameters:
+      - in: path
+        name: rack_id
+        required: true
+        schema: { type: string }
+    get:
+      tags: [vault]
+      summary: Get a rack
+      operationId: getVaultRack
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VaultRack' }
+
+  /v1/vault/racks/{rack_id}/redfish-credentials:
+    parameters:
+      - in: path
+        name: rack_id
+        required: true
+        schema: { type: string }
+    post:
+      tags: [vault]
+      summary: Mint Redfish (BMC) credentials
+      description: Short-lived (1h) Redfish credentials for out-of-band node management.
+      operationId: mintRedfishCreds
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RedfishCreds' }
+
+  /v1/vault/racks/{rack_id}/talos-config:
+    parameters:
+      - in: path
+        name: rack_id
+        required: true
+        schema: { type: string }
+    get:
+      tags: [vault]
+      summary: Download Talos machine config for the rack
+      operationId: getTalosConfig
+      responses:
+        '200':
+          description: Success
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /v1/vault/racks/{rack_id}/attestation:
+    parameters:
+      - in: path
+        name: rack_id
+        required: true
+        schema: { type: string }
+    get:
+      tags: [vault]
+      summary: Get measured-boot attestation report
+      description: |
+        Returns the current Keylime attestation for each node in the rack, including
+        TPM 2.0 PCR values and the verifier's verdict. Used by sovereign customers
+        to confirm hardware integrity before deploying sensitive workloads.
+      operationId: getRackAttestation
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttestationReport' }
+
+  # ------------------------------------------------------------------
+  # TENANCY
+  # ------------------------------------------------------------------
+
+  /v1/orgs/{org_id}/api-keys:
+    parameters:
+      - in: path
+        name: org_id
+        required: true
+        schema: { type: string }
+    post:
+      tags: [tenancy]
+      summary: Create an API key
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes]
+              properties:
+                name: { type: string }
+                scopes:
+                  type: array
+                  items: { type: string, enum: [spark.read, spark.write, forge.read, forge.write, vault.read, vault.write, billing.read] }
+                ttl_days:
+                  type: integer
+                  minimum: 1
+                  maximum: 365
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiKey' }
+    get:
+      tags: [tenancy]
+      summary: List API keys
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ApiKey' }
+
+  /v1/orgs/{org_id}/sovereignty:
+    parameters:
+      - in: path
+        name: org_id
+        required: true
+        schema: { type: string }
+    get:
+      tags: [tenancy]
+      summary: Get sovereignty profile for an org
+      operationId: getSovereigntyProfile
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SovereigntyProfile' }
+    patch:
+      tags: [tenancy]
+      summary: Update sovereignty profile
+      description: |
+        Sovereignty profile controls allowed metros, allowed catalogs (standard vs
+        extended), and required attestation level. Changes here trigger re-evaluation
+        of active workloads.
+      operationId: updateSovereigntyProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SovereigntyProfile' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SovereigntyProfile' }
+
+components:
+
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Format: `Bearer volt_sk_...`"
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.volt.cloud/oauth/authorize
+          tokenUrl: https://auth.volt.cloud/oauth/token
+          scopes:
+            read: Read access
+            write: Write access
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated but not allowed (e.g. sovereignty policy)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Quota exceeded
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unavailable:
+      description: No capacity in any acceptable pod
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: "rate_limit_exceeded" }
+            message: { type: string }
+            request_id: { type: string }
+            pod_id: { type: string, description: "Pod that handled (or rejected) the request" }
+
+    # ---- Spark ----
+
+    ChatCompletionRequest:
+      type: object
+      required: [model, messages]
+      properties:
+        model:
+          type: string
+          example: "llama-3.3-70b-instruct"
+        messages:
+          type: array
+          items: { $ref: '#/components/schemas/ChatMessage' }
+        max_tokens: { type: integer, minimum: 1, maximum: 32768 }
+        temperature: { type: number, minimum: 0, maximum: 2, default: 1 }
+        top_p: { type: number, minimum: 0, maximum: 1, default: 1 }
+        stream: { type: boolean, default: false }
+        tools:
+          type: array
+          items: { type: object }
+        # Volt extensions
+        volt_metro:
+          type: string
+          description: "Pin to a specific metro pod, e.g. us-east-iad, eu-west-fra"
+        volt_tier:
+          type: string
+          enum: [standard, sovereign]
+          default: standard
+        volt_pod_affinity:
+          type: string
+          description: "Opaque affinity key for sticky routing and cache reuse"
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [system, user, assistant, tool] }
+        content: { type: string }
+        name: { type: string }
+        tool_call_id: { type: string }
+
+    ChatCompletionResponse:
+      type: object
+      required: [id, object, created, model, choices, usage]
+      properties:
+        id: { type: string }
+        object: { type: string, example: "chat.completion" }
+        created: { type: integer, format: int64 }
+        model: { type: string }
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index: { type: integer }
+              message: { $ref: '#/components/schemas/ChatMessage' }
+              finish_reason: { type: string, enum: [stop, length, tool_calls, content_filter] }
+        usage:
+          type: object
+          properties:
+            prompt_tokens: { type: integer }
+            completion_tokens: { type: integer }
+            total_tokens: { type: integer }
+        volt:
+          type: object
+          description: Volt-specific metadata
+          properties:
+            pod_id: { type: string }
+            metro: { type: string }
+            tier: { type: string, enum: [standard, sovereign] }
+            ttft_ms: { type: integer }
+            tps: { type: number }
+
+    CompletionRequest:
+      type: object
+      required: [model, prompt]
+      properties:
+        model: { type: string }
+        prompt: { type: string }
+        max_tokens: { type: integer }
+        temperature: { type: number }
+
+    CompletionResponse:
+      type: object
+      properties:
+        id: { type: string }
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              text: { type: string }
+              finish_reason: { type: string }
+        usage: { type: object }
+
+    EmbeddingRequest:
+      type: object
+      required: [model, input]
+      properties:
+        model: { type: string, example: "bge-large-en-v1.5" }
+        input:
+          oneOf:
+            - { type: string }
+            - { type: array, items: { type: string } }
+
+    EmbeddingResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              embedding:
+                type: array
+                items: { type: number }
+              index: { type: integer }
+        usage: { type: object }
+
+    Model:
+      type: object
+      required: [id, object, owned_by]
+      properties:
+        id: { type: string, example: "llama-3.3-70b-instruct" }
+        object: { type: string, example: "model" }
+        owned_by: { type: string, example: "meta" }
+        catalog: { type: string, enum: [standard, extended] }
+        tiers: { type: array, items: { type: string, enum: [standard, sovereign] } }
+        context_length: { type: integer }
+        price_per_million_input_tokens_usd: { type: number }
+        price_per_million_output_tokens_usd: { type: number }
+        capabilities:
+          type: array
+          items: { type: string, enum: [chat, completion, embedding, vision, function_calling, fine_tuning] }
+
+    FineTuneRequest:
+      type: object
+      required: [base_model, training_file]
+      properties:
+        base_model: { type: string }
+        training_file: { type: string, description: "S3 URL or Volt artifact ID" }
+        method: { type: string, enum: [lora, qlora], default: lora }
+        rank: { type: integer, default: 16 }
+        epochs: { type: integer, default: 3 }
+        volt_metro: { type: string }
+
+    FineTuneJob:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, cancelled] }
+        base_model: { type: string }
+        artifact_id: { type: string, description: "Available when status=succeeded" }
+        created_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+
+    UsageReport:
+      type: object
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        granularity: { type: string }
+        series:
+          type: array
+          items:
+            type: object
+            properties:
+              ts: { type: string, format: date-time }
+              model: { type: string }
+              tier: { type: string }
+              metro: { type: string }
+              input_tokens: { type: integer }
+              output_tokens: { type: integer }
+              cost_usd: { type: number }
+
+    # ---- Forge ----
+
+    ForgeAvailabilityResponse:
+      type: object
+      properties:
+        metro: { type: string }
+        gpu_type: { type: string }
+        available_count: { type: integer }
+        next_available_at: { type: string, format: date-time }
+        price:
+          type: object
+          properties:
+            on_demand_usd_per_gpu_hour: { type: number }
+            reserved_12mo_usd_per_gpu_hour: { type: number }
+            reserved_36mo_usd_per_gpu_hour: { type: number }
+
+    ForgeLeaseRequest:
+      type: object
+      required: [metro, gpu_type, count, term]
+      properties:
+        metro: { type: string }
+        gpu_type: { type: string, enum: [b200, l40s, mi355x, b300, gaudi3] }
+        count: { type: integer, minimum: 1 }
+        term: { type: string, enum: [on_demand, 12_month, 36_month] }
+        namespace_name: { type: string, description: "Customer K8s namespace to create" }
+        attestation_required: { type: boolean, default: false }
+
+    ForgeLease:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [provisioning, active, terminating, terminated, failed] }
+        metro: { type: string }
+        pod_id: { type: string }
+        namespace: { type: string }
+        gpu_type: { type: string }
+        gpu_count: { type: integer }
+        term: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        kubeconfig_endpoint: { type: string, format: uri }
+
+    Kubeconfig:
+      type: object
+      properties:
+        kubeconfig: { type: string, description: "Base64-encoded kubeconfig YAML" }
+        expires_at: { type: string, format: date-time }
+        spiffe_id: { type: string, example: "spiffe://volt.cloud/tenant/acme/forge/lease-123" }
+
+    # ---- Vault ----
+
+    VaultRackRequest:
+      type: object
+      required: [metro, gpu_type, term]
+      properties:
+        metro: { type: string }
+        gpu_type: { type: string, enum: [b200, mi355x, b300] }
+        rack_template: { type: string, enum: [standard_8gpu, dense_16gpu] }
+        term: { type: string, enum: [36_month, 60_month] }
+        customer_kms_arn: { type: string, description: "If provided, disks are encrypted with customer-held key" }
+        managed_kubernetes: { type: boolean, default: false }
+
+    VaultRack:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [requested, procuring, deploying, ready, decommissioning, terminated] }
+        metro: { type: string }
+        pod_id: { type: string }
+        rack_template: { type: string }
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              hostname: { type: string }
+              gpu_type: { type: string }
+              gpu_count: { type: integer }
+              attestation_status: { type: string, enum: [verified, pending, failed] }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+
+    RedfishCreds:
+      type: object
+      properties:
+        endpoint: { type: string, format: uri }
+        username: { type: string }
+        password: { type: string }
+        expires_at: { type: string, format: date-time }
+
+    AttestationReport:
+      type: object
+      properties:
+        rack_id: { type: string }
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              hostname: { type: string }
+              tpm_pcr_values:
+                type: object
+                additionalProperties: { type: string }
+              measured_boot_verdict: { type: string, enum: [pass, fail, unknown] }
+              verified_at: { type: string, format: date-time }
+
+    # ---- Tenancy ----
+
+    ApiKey:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        prefix: { type: string, example: "volt_sk_live_a1b2c3" }
+        secret: { type: string, description: "Only returned on creation. Never logged." }
+        scopes:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+
+    SovereigntyProfile:
+      type: object
+      properties:
+        allowed_metros:
+          type: array
+          items: { type: string }
+          example: ["us-east-iad", "us-central-dfw"]
+        allowed_catalogs:
+          type: array
+          items: { type: string, enum: [standard, extended] }
+        required_attestation:
+          type: string
+          enum: [none, measured_boot, customer_kms]
+        block_egress_dns:
+          type: boolean
+          default: true
+        audit_retention_years:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 7

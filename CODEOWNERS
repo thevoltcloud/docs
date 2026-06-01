@@ -1,0 +1,5 @@
+# CODEOWNERS — thevoltcloud/docs
+# Docs/handbook policy: 1 reviewer. Interim owner CPO (Hitomi Mizugaki) + CEO
+# until a technical writer is hired (post Series A).
+*                   @ar4mirez
+/api-reference/     @ar4mirez
