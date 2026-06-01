@@ -1,30 +1,28 @@
 import { buttonVariants } from '@/components/ui/button'
-import { Link, Plus } from 'lucide-react'
-import { Gemini } from '@/components/ui/svgs/gemini'
-import { Replit } from '@/components/ui/svgs/replit'
+import { ShieldCheck, Boxes, Sparkles } from 'lucide-react'
 
 export const IntegrationsIllustration = () => (
     <div
         aria-hidden
         className="bg-foreground/5 group rounded-2xl">
         <div className="flex items-center gap-1.5 px-6 py-2.5 text-sm font-medium">
-            <Link className="size-3.5 opacity-50" />
-            Integrations
+            <ShieldCheck className="size-3.5 opacity-50" />
+            In-metro catalog
         </div>
         <div className="relative">
             <div className="absolute inset-0 scale-100 opacity-100 blur-lg transition-all duration-300">
-                <div className="bg-linear-to-r/increasing animate-hue-rotate absolute inset-x-6 bottom-0 top-12 -translate-y-3 from-pink-400 to-purple-400"></div>
+                <div className="bg-linear-to-r/increasing animate-hue-rotate absolute inset-x-6 bottom-0 top-12 -translate-y-3 from-amber-400 to-orange-500"></div>
             </div>
             <div className="bg-card ring-foreground/10 relative overflow-hidden rounded-2xl border border-transparent px-6 py-3 shadow-md shadow-black/5 ring-1">
                 <Integration
-                    icon={<Gemini />}
-                    name="Gemini"
-                    description="The AI model that powers Google's search engine."
+                    icon={<Boxes className="text-primary" />}
+                    name="Llama 3.3 70B"
+                    description="Meta open-weights, served in your customer's metro."
                 />
                 <Integration
-                    icon={<Replit />}
-                    name="Replit"
-                    description="The AI model that powers Google's search engine."
+                    icon={<Sparkles className="text-primary" />}
+                    name="Mistral Large"
+                    description="Open-weights, zero egress on every request."
                 />
             </div>
         </div>
@@ -40,7 +38,7 @@ const Integration = ({ icon, name, description }: { icon: React.ReactNode; name:
                 <p className="text-muted-foreground line-clamp-1 text-sm">{description}</p>
             </div>
             <div className={buttonVariants({ variant: 'outline', size: 'icon' })}>
-                <Plus className="size-4" />
+                <ShieldCheck className="size-4" />
             </div>
         </div>
     )
