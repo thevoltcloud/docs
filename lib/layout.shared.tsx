@@ -7,7 +7,8 @@ import { Logo } from '@/components/logo';
 // without a code change — set NEXT_PUBLIC_SITE_URL / NEXT_PUBLIC_STATUS_URL in
 // the deployment environment.
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://voltcloud.ai';
-const STATUS_URL = process.env.NEXT_PUBLIC_STATUS_URL ?? 'https://status.voltcloud.ai';
+// Self-hosted status page lives at /status on the marketing site.
+const STATUS_URL = process.env.NEXT_PUBLIC_STATUS_URL ?? `${SITE_URL}/status`;
 
 export function baseOptions(): BaseLayoutProps {
   return {
