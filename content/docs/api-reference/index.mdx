@@ -1,0 +1,83 @@
+---
+title: API reference
+description: The Volt Control Plane API for Spark, Forge, and Vault — endpoints, auth, and the OpenAPI spec.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The **Volt Control Plane API** covers all three SKUs. The base URL is
+`https://api.volt.cloud` (staging: `https://api.staging.volt.cloud`).
+
+The full machine-readable spec is published at
+[`/openapi.yaml`](/openapi.yaml) (OpenAPI 3.1).
+
+## Authentication
+
+Every request is authenticated and mapped server-side to a SPIFFE tenant ID, then audited.
+
+| Method | Use |
+| --- | --- |
+| API key (`Authorization: Bearer volt_sk_live_...`) | Machine clients |
+| OAuth2 device flow (`read`, `write` scopes) | CLI sign-in |
+| OIDC (Okta, Entra, Google Workspace) | Human admins in the console |
+
+See [Authentication](/docs/getting-started/authentication) for issuing and revoking keys.
+
+<Callout>
+Zero ingress, zero egress, zero inter-pod transfer are enforced at the data plane.
+This API never returns or accepts customer prompt/response payloads outside the pod
+the request was served from.
+</Callout>
+
+## Spark — tokens-as-a-service
+
+OpenAI-compatible, plus Volt extensions. Every response carries a `volt` block with the
+serving pod, metro, tier, and timing.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/v1/chat/completions` | Create a chat completion |
+| `POST` | `/v1/completions` | Create a text completion (legacy) |
+| `POST` | `/v1/embeddings` | Generate embeddings |
+| `GET` | `/v1/models` | List available models (catalog-filtered) |
+| `GET` | `/v1/models/{model_id}` | Get a model |
+| `POST` | `/v1/fine-tuning/jobs` | Submit a LoRA fine-tune job |
+| `GET` | `/v1/fine-tuning/jobs/{job_id}` | Get a fine-tune job |
+
+## Forge — GPU-as-a-service
+
+Dedicated GPU leases scoped into a customer Kubernetes namespace.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/v1/forge/availability` | Query GPU availability |
+| `POST` | `/v1/forge/leases` | Create a GPU lease |
+| `GET` | `/v1/forge/leases` | List leases |
+| `GET` | `/v1/forge/leases/{lease_id}` | Get a lease |
+| `DELETE` | `/v1/forge/leases/{lease_id}` | Terminate a lease |
+| `POST` | `/v1/forge/leases/{lease_id}/kubeconfig` | Mint a scoped kubeconfig |
+
+## Vault — dedicated bare-metal
+
+Single-tenant racks, sovereign by default, with measured-boot attestation.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/v1/vault/racks` | Request a dedicated bare-metal rack |
+| `GET` | `/v1/vault/racks` | List racks |
+| `GET` | `/v1/vault/racks/{rack_id}` | Get a rack |
+| `POST` | `/v1/vault/racks/{rack_id}/redfish-credentials` | Mint Redfish (BMC) credentials |
+| `GET` | `/v1/vault/racks/{rack_id}/talos-config` | Download Talos machine config |
+| `GET` | `/v1/vault/racks/{rack_id}/attestation` | Get measured-boot attestation report |
+
+## Billing & tenancy
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/v1/usage` | Get token usage for the tenant |
+| `GET` | `/v1/orgs/{org_id}/api-keys` | Manage org API keys |
+
+<Callout type="info">
+Prefer a typed client? The Python SDK wraps every endpoint above. TypeScript and Go SDKs
+are rolling out — until then, call the REST API directly with the spec.
+</Callout>

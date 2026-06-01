@@ -5,6 +5,15 @@ Source for [docs.volt.cloud](https://docs.volt.cloud). Auto-generated from
 
 ## [Unreleased]
 
+### Changed
+- Migrated the docs site from Mintlify to **Fumadocs** (Next.js + MDX). All pages moved
+  under `content/docs/`; navigation is now `meta.json`-driven. Mintlify components
+  (`CardGroup`, `Note`, `Warning`, `CodeGroup`) converted to Fumadocs equivalents
+  (`Cards`, `Callout`, `Tabs`).
+- Landing page (`app/(home)`) rebuilt with **TailArk Pro** blocks; theme matches the
+  Volt marketing site (Volt-yellow accent, dark default).
+- CI now typechecks + builds the Next.js app; OpenAPI spec lives at `public/openapi.yaml`.
+
 ### Added
 - Mintlify site scaffold (`docs.json`): Guides + API reference tabs.
 - Getting started: quickstart, authentication, first request.

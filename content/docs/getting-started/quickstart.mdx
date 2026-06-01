@@ -1,0 +1,79 @@
+---
+title: Quickstart
+description: Install the SDK, get a key, and make your first request.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Key, Zap, Shield, Code } from 'lucide-react';
+
+Get from zero to a streamed completion in under five minutes.
+
+## 1. Install the SDK
+
+<Tabs items={['Python', 'TypeScript', 'Go']}>
+  <Tab value="Python">
+  ```bash
+  pip install volt
+  ```
+  </Tab>
+  <Tab value="TypeScript">
+  ```bash
+  npm install @thevoltcloud/sdk
+  ```
+  </Tab>
+  <Tab value="Go">
+  ```bash
+  go get github.com/thevoltcloud/sdk-go
+  ```
+  </Tab>
+</Tabs>
+
+<Callout>
+TypeScript and Go SDKs are rolling out. Python is available today; until the
+others land you can call the [REST API](/docs/api-reference) directly.
+</Callout>
+
+## 2. Get an API key
+
+Create one in the console or with [`voltctl`](https://github.com/thevoltcloud/voltctl):
+
+```bash
+voltctl key issue --org <your-org-id> --name "laptop"
+```
+
+Keys look like `volt_sk_live_...`. Store it in your environment:
+
+```bash
+export VOLT_API_KEY=volt_sk_live_...
+```
+
+## 3. First request
+
+```python
+from volt import Volt
+
+client = Volt()  # reads VOLT_API_KEY
+resp = client.chat.completions.create(
+    model="llama-3.3-70b-instruct",
+    messages=[{"role": "user", "content": "Say hello from my metro."}],
+)
+print(resp.choices[0].message.content)
+print("served by", resp.volt.pod_id, "in", resp.volt.metro)
+```
+
+## Next steps
+
+<Cards>
+  <Card title="Authentication" href="/docs/getting-started/authentication" icon={<Key />}>
+    Keys, env vars, and rotation.
+  </Card>
+  <Card title="Stream responses" href="/docs/cookbook/streaming-chat" icon={<Zap />}>
+    Token-by-token streaming.
+  </Card>
+  <Card title="Go sovereign" href="/docs/concepts/sovereignty" icon={<Shield />}>
+    Pin a metro and enforce the sovereign tier.
+  </Card>
+  <Card title="API reference" href="/docs/api-reference" icon={<Code />}>
+    Every endpoint.
+  </Card>
+</Cards>

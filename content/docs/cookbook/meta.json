@@ -1,0 +1,4 @@
+{
+  "title": "Cookbook",
+  "pages": ["streaming-chat", "batch-embeddings", "sovereign-isolation", "typescript-quickstart", "go-quickstart"]
+}

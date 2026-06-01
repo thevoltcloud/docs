@@ -1,0 +1,46 @@
+---
+title: Tiers & catalogs
+description: Standard vs sovereign tiers, and the standard vs extended model catalog.
+---
+
+Two independent axes control what you run and where: the **serving tier** and the
+**model catalog**.
+
+## Serving tiers
+
+| Tier | Price (Llama 70B) | Use when |
+|---|---|---|
+| Standard | $0.95/M tokens | You want in-metro serving and zero egress at the best price |
+| Sovereign | $1.45/M tokens | You need pod-pinned inference, a dedicated trust domain, and a compliance attestation pack |
+
+See [sovereignty](/docs/concepts/sovereignty) for how to enable and enforce the
+sovereign tier.
+
+## Model catalogs
+
+| Catalog | Default? | Contents |
+|---|---|---|
+| Standard | Yes, all customers | Llama 3.3/4, Mistral/Mixtral, Cohere Command R+, Gemma 3, Phi-4, Codestral, Whisper, BGE/Nomic embeddings, Llava/Pixtral |
+| Extended | Opt-in via contract addendum | Qwen 2.5, DeepSeek, MiniMax |
+
+<Callout type="warn">
+The extended catalog is **blocked by default for federal and regulated
+workloads**. It contains Chinese-origin weights and must be explicitly enabled in
+your org's sovereignty profile.
+</Callout>
+
+Customer bring-your-own fine-tunes (LoRA or full-weights) are always supported.
+
+## Reserved pricing
+
+For Forge GPU leases and committed Spark volume, reserved terms cut the on-demand
+rate:
+
+- **12-month**: 45% off on-demand
+- **36-month**: 60% off on-demand
+
+## Which models can I call?
+
+`client.models.list()` returns only the models your org's catalog allows. A model
+outside your catalog returns a `not_found` error rather than silently serving from
+a blocked source.

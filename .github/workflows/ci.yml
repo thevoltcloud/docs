@@ -1,4 +1,4 @@
-# CI for thevoltcloud/docs (Mintlify).
+# CI for thevoltcloud/docs (Fumadocs / Next.js).
 name: ci
 
 on:
@@ -10,24 +10,26 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate docs.json is valid JSON
-        run: python3 -c "import json; json.load(open('docs.json'))"
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Check for broken links
-        run: npx --yes mintlify@latest broken-links
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run types:check
+      - name: Build
+        run: npm run build
 
   openapi:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Validate API reference spec
-        run: npx --yes @redocly/cli@latest lint api-reference/openapi.yaml
+        run: npx --yes @redocly/cli@latest lint public/openapi.yaml
 
   secret-scan:
     uses: thevoltcloud/.github/.github/workflows/shared-secret-scan.yml@main

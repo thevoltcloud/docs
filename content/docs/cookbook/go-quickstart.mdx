@@ -1,0 +1,38 @@
+---
+title: Go quickstart
+description: Using Volt from Go.
+---
+
+<Callout>
+The Go SDK (`github.com/thevoltcloud/sdk-go`) is rolling out. The shape below is
+stable; until it ships, `voltctl` and the [REST API](/docs/api-reference) cover Go
+workflows.
+</Callout>
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+
+    volt "github.com/thevoltcloud/sdk-go"
+)
+
+func main() {
+    c := volt.New(volt.Options{
+        APIKey:      "volt_sk_live_...",
+        Sovereign:   true,
+        PinnedMetro: "us-east-iad",
+    })
+    resp, err := c.Chat().Create(context.Background(), volt.ChatRequest{
+        Model:       "llama-3.3-70b-instruct",
+        Messages:    []volt.Message{{Role: "user", Content: "Summarize"}},
+        PodAffinity: "session-42",
+    })
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println(resp.Volt.PodID, resp.Volt.TTFTms)
+}
+```
