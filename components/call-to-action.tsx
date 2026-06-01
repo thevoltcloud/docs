@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { LogoIcon } from '@/components/logo'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://voltcloud.ai'
+
 export default function CallToAction() {
     return (
         <section className="bg-background py-12 md:py-24">
@@ -19,7 +21,7 @@ export default function CallToAction() {
 
                         <div className="flex items-center justify-center gap-3">
                             <Button asChild>
-                                <Link href="https://voltcloud.ai/contact">Get an API key</Link>
+                                <Link href={`${SITE_URL}/contact`}>Get an API key</Link>
                             </Button>
                             <Button
                                 asChild

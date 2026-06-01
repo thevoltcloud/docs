@@ -1,6 +1,13 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { gitConfig } from './shared';
 
+// Brand domain is voltcloud.ai. Base URLs are env-overridable so the interim
+// deploy can point back at the live website/status host (e.g. volt.cuemby.cloud)
+// without a code change — set NEXT_PUBLIC_SITE_URL / NEXT_PUBLIC_STATUS_URL in
+// the deployment environment.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://voltcloud.ai';
+const STATUS_URL = process.env.NEXT_PUBLIC_STATUS_URL ?? 'https://status.voltcloud.ai';
+
 function VoltMark() {
   return (
     <span className="inline-flex items-center gap-2">
@@ -31,22 +38,22 @@ export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
       title: <VoltMark />,
-      url: 'https://voltcloud.ai',
+      url: SITE_URL,
     },
     githubUrl: `https://github.com/${gitConfig.user}`,
     links: [
       {
         text: 'Status',
-        url: 'https://status.voltcloud.ai',
+        url: STATUS_URL,
       },
       {
         text: 'Website',
-        url: 'https://voltcloud.ai',
+        url: SITE_URL,
       },
       {
         type: 'button',
         text: 'Get an API key',
-        url: 'https://voltcloud.ai/contact',
+        url: `${SITE_URL}/contact`,
       },
     ],
   };
